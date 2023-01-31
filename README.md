@@ -1,70 +1,71 @@
-# Getting Started with Create React App
+# 如何调式 antd 源码
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+详细步骤和讲解请参考：
+https://juejin.cn/post/7158430758070140942#comment
 
-## Available Scripts
+## 主要步骤
 
-In the project directory, you can run:
+### antd 源码改造
 
-### `npm start`
+#### 关联 sourcemap 修改编译配置
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```js
+//  antd/node_modules/@antd-design/tools/lib/getWebpackConfig.js
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+// 添加:
+babelConfig.sourceMap = true;
 
-### `npm test`
+// 修改 bebel 配置:
+const config = {
+    devtool: 'cheap-module-source-map',
+    // ......
+};
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+#### 重新 dist
 
-### `npm run build`
+```bash
+# 重新执行 dist
+npm run dist
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+dist 目录下会生成新的 `antd.js` 和 `antd.js.map`。
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 项目调试配置
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+#### 覆盖原 antd 文件
 
-### `npm run eject`
+将刚刚 `antd/dist` 中新生成 `antd.js` 和 `antd.js.map` 复制到项目的 `node_modules/antd/dist` 下。
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+#### 清理 cache
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+清一下 babel-loader 的缓存，删除整个 `node_modules/.cache` 目录，并重启 dev server。
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+#### 创建 launch 调试配置文件
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```js
+// .vscode/launch.json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome", // 使用浏览器调试
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:3000", // dev server 本地服务器地址
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}
+```
 
-## Learn More
+#### 修改代码中的引用路径
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```diff
+- import { Button } from 'antd';
++ import { Button } from 'antd/dist/antd';
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+#### 打断点，启动 launch
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+在需要的地方添加可编辑断点
